@@ -47,3 +47,4 @@ ggplot(simulation, aes(x = n, y = prob)) +
 ```
 According to the plot, the probability of at least two people have shared birthdays reaches 50% at around a group size of 23, and exceeds 90% at around group size 41. The curve first rises at a slower rate for group size lower than 10, than has a tendency of increases faster as `n` increases until the probability becomes relatively large.
 
+## Problem 2
