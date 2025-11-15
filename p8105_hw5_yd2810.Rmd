@@ -12,6 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(tidyverse)
 library(broom)
+library(purrr)
+library(here)
 ```
 
 ## Problem 1
@@ -102,3 +104,55 @@ ggplot(avg_tbl, aes(mu, avg_mu_hat, color = set)) +
 The sample average of estimated 𝜇 across tests for which the null is rejected is not approximately equal to the true value of 𝜇 when power is low. For small 𝜇, the 'rej_only' line sits above the 'all' line, for conditioning of p<0.05 selects estimates that are farther from 0, creating selection bias and inflating estimation of 𝜇. As 𝜇 grow (>=4) and power approaches 1,  the two lines coincide. 
 
 ## Problem 3
+
+```{r}
+homicide_raw <- read_csv(here("data", "homicide-data.csv"))
+```
+
+The raw data has `r nrow(homicide_raw)` observations and `r ncol(homicide_raw)` variables. Each row represents one homicide case from `r n_distinct(homicide_raw$city)` cities in `r n_distinct(homicide_raw$state)` states.
+
+```{r}
+data <- homicide_raw %>% 
+  mutate(
+    city_state = str_c(city,", ",state),
+    unsolved   = disposition %in% c("Closed without arrest", "Open/No arrest")
+  )
+```
+
+```{r}
+city_homicide <- data %>% 
+  count(city_state,unsolved,name="n") %>% 
+  pivot_wider(names_from = unsolved,
+              values_from = n, values_fill = 0) %>% 
+  rename(solved = `FALSE`,unsolved=`TRUE`) %>% 
+  mutate(total=solved+unsolved)
+```
+
+```{r}
+bal <- city_homicide %>% filter(city_state=="Baltimore, MD")
+
+bal_test <- prop.test(x=bal$unsolved,n=bal$total)
+bal_tidy <- tidy(bal_test)
+bal_tidy
+```
+
+```{r}
+city_est <- city_homicide %>% 
+  mutate(test = map2(unsolved, total, ~prop.test(.x, .y)),
+         out = map(test, tidy)) %>% 
+  unnest(out) %>% 
+  select(city_state, total, unsolved, estimate, conf.low, conf.high, p.value)
+```
+
+```{r}
+city_est %>% 
+  mutate(city_state=fct_reorder(city_state,estimate)) %>% 
+  ggplot(aes(x = city_state, y = estimate))+
+  geom_point()+
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high),width=0)+
+                  coord_flip()+
+                  labs(x = NULL, y = "Proportion unsolved",
+       title = "Homicide unsolved proportions by city")+
+         theme_minimal(base_size = 12)
+```
+
