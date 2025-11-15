@@ -1,0 +1,49 @@
+---
+title: "p8105_hw5_yd2810"
+author: "Yaxuan Deng"
+date: "`r Sys.Date()`"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+## Problem 1
+
+```{r}
+set.seed(1234)
+
+share_birthday <- function(n){
+  birthday <- sample.int(365,size=n,replace = TRUE)
+  any(duplicated(birthday))
+}
+
+n_seq <- 2:50
+n_sim <- 10000
+
+# simulate each n and estimate probability
+simulation <- 
+  map_dfr(n_seq,\(n){
+    tibble(
+      n=n,
+      prob = mean(replicate(n_sim, share_birthday(n)))
+    )
+  })
+```
+
+```{r}
+ggplot(simulation, aes(x = n, y = prob)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 1.2) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  labs(x = "Group size (n)",
+       y = "Probability of ≥2 shared birthdays") +
+  theme_minimal(base_size = 12)
+```
+According to the plot, the probability of at least two people have shared birthdays reaches 50% at around a group size of 23, and exceeds 90% at around group size 41. The curve first rises at a slower rate for group size lower than 10, than has a tendency of increases faster as `n` increases until the probability becomes relatively large.
+
